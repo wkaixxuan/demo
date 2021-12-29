@@ -1,0 +1,83 @@
+---
+# Source: apache/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd-apache
+  labels:
+    app.kubernetes.io/name: apache
+    helm.sh/chart: apache-8.11.1
+    app.kubernetes.io/instance: httpd
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: apache
+      app.kubernetes.io/instance: httpd
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: apache
+        helm.sh/chart: apache-8.11.1
+        app.kubernetes.io/instance: httpd
+        app.kubernetes.io/managed-by: Helm
+    spec:
+
+      # yamllint disable rule:indentation
+      hostAliases:
+        - hostnames:
+          - status.localhost
+          ip: 127.0.0.1
+      # yamllint enable rule:indentation
+      affinity:
+        podAffinity:
+
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: apache
+                    app.kubernetes.io/instance: httpd
+                namespaces:
+                  - "default"
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+
+      containers:
+        - name: apache
+          image: docker.io/bitnami/apache:2.4.52-debian-10-r3
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: https
+              containerPort: 8443
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          resources:
+            limits: {}
+            requests: {}
+          volumeMounts:
+      volumes:
